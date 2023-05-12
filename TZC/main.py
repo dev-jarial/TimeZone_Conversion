@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 
 def format_datetime(dt, tz):
@@ -41,5 +41,45 @@ def convert_timezone(from_country: str, from_timezone: str, to_country: str, to_
     except ValueError:
         return {"error": "Invalid datetime format provided."}
 
-# Running on browser here is the url, You can change the country and timezone ......!!!
-# http://127.0.0.1:8000/convert_timezone?from_country=IN&from_timezone=Asia/Kolkata&to_country=IN&to_timezone=Asia/Kolkata&datetime_str=2023-05-11T12:00:00
+# here is the test url for get-by-name
+# http://127.0.0.1:8000/convert_timezone?from_country=IN&from_timezone=Asia/Kolkata&to_country=PK&to_timezone=Asia/Karachi&datetime_str=2023-05-11T12:00:00
+
+
+def convert_gmt_time(gmt_time: str, from_offset: timedelta, to_offset: timedelta) -> str:
+    # Parse the GMT time string
+    gmt_dt = datetime.strptime(gmt_time, "%Y-%m-%dT%H:%M:%S")
+
+    # Apply the from_offset to convert GMT time to local time
+    local_time = gmt_dt - from_offset
+
+    # Apply the to_offset to convert local time to the target offset
+    to_time = local_time + to_offset
+
+    # Format the converted time as a string
+    converted_time = to_time.strftime("%Y-%m-%dT%H:%M:%S")
+
+    return converted_time
+
+@app.get("/convert_timezone_by_gmt")
+def convert_timezone_by_gmt(gmt_time: str, from_offset: str, to_offset: str):
+    try:
+        from_offset_parts = from_offset.split(":")
+        from_offset = timedelta(hours=int(from_offset_parts[0]), minutes=int(from_offset_parts[1]))
+
+        to_offset_parts = to_offset.split(":")
+        to_offset = timedelta(hours=int(to_offset_parts[0]), minutes=int(to_offset_parts[1]))
+
+        converted_time = convert_gmt_time(gmt_time, from_offset, to_offset)
+
+        return {
+            "gmt_time": gmt_time,
+            "from_offset": from_offset.total_seconds(),
+            "to_offset": to_offset.total_seconds(),
+            "converted_time": converted_time
+        }
+    except ValueError:
+        return {"error": "Invalid input format provided."}
+    
+# url for GMT coversion type
+# http://127.0.0.1:8000/convert_timezone_by_gmt?gmt_time=2023-05-12T05:27:00&from_offset=-04:00&to_offset=+05:30
+
